@@ -1,0 +1,82 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ATLAS Dashboard - {{ page_title }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'banking/chatbot_demo.css' %}">
+  <link rel="stylesheet" href="{% static 'banking/tokens.css' %}">
+  <link rel="stylesheet" href="{% static 'banking/main.css' %}?v=20260916-customer-clustering-inputs">
+  <script src="{% static 'banking/dashboard_shell.js' %}" defer></script>
+  <script src="{% static 'banking/customer_charts.js' %}?v=20260916-customer-clustering-inputs" defer></script>
+  <script src="{% static 'banking/relationship_graph.js' %}?v=20260916-search-examples-initial"></script>
+</head>
+<body class="dashboard-page">
+  <div class="app-shell">
+    <aside class="nav-sidebar">
+      <div class="nav-sidebar__brand">
+        <img class="nav-sidebar__brand-logo" src="{% static 'banking/atlas_assistant_icon.svg' %}" alt="Atlas Demo Bank">
+        <div>
+          <span class="nav-sidebar__brand-name">ATLAS</span>
+          <span class="nav-sidebar__brand-subtitle">Dashboard</span>
+        </div>
+      </div>
+      <div class="nav-sidebar__section-label">Analytics</div>
+      <ul class="nav-sidebar__list">
+        <li><a class="nav-sidebar__item {% if page_key == 'overview' %}nav-sidebar__item--active{% endif %}" href="{% url 'dashboard' %}"><span class="nav-sidebar__icon">#</span><span class="nav-label">Overview</span></a></li>
+        <li><a class="nav-sidebar__item {% if page_key == 'customers' %}nav-sidebar__item--active{% endif %}" href="{% url 'dashboard-customers' %}"><span class="nav-sidebar__icon">ID</span><span class="nav-label">Customers</span></a></li>
+        <li><a class="nav-sidebar__item {% if page_key == 'segments' %}nav-sidebar__item--active{% endif %}" href="{% url 'dashboard-segments' %}"><span class="nav-sidebar__icon">S</span><span class="nav-label">Segments</span></a></li>
+        <li><a class="nav-sidebar__item {% if page_key == 'product-recommendations' %}nav-sidebar__item--active{% endif %}" href="{% url 'dashboard-recommendations' %}"><span class="nav-sidebar__icon">PR</span><span class="nav-label">Product Recommendations</span></a></li>
+        <li><a class="nav-sidebar__item" href="{% url 'chatbot-demo' %}"><span class="nav-sidebar__icon">AI</span><span class="nav-label">Assistant</span></a></li>
+      </ul>
+      <div class="nav-sidebar__footer">
+        <div class="nav-sidebar__user">
+          <div class="nav-sidebar__avatar">{{ request.user.username|slice:":2"|upper }}</div>
+          <div>
+            <div class="nav-sidebar__user-name">{{ request.user.username }}</div>
+            <div class="nav-sidebar__user-role">{{ demo_role }}</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+    <div class="app-main">
+      <header class="topbar">
+        <button class="topbar__menu" type="button" aria-label="Open navigation" data-sidebar-toggle>&equiv;</button>
+        <span class="topbar__title">{{ page_title }}</span>
+        <form class="topbar__search" role="search" data-dashboard-search>
+          <span aria-hidden="true">&#8981;</span>
+          <input type="search" name="q" placeholder="Go to a dashboard section or enter a customer ID" autocomplete="off" aria-describedby="dashboard-search-status">
+          <output class="topbar__search-status" id="dashboard-search-status" data-dashboard-search-status></output>
+        </form>
+        <div class="topbar__actions">
+          <button class="btn btn--secondary btn--icon" type="button" data-theme-toggle aria-label="Switch to dark theme" title="Switch theme">
+            <span data-theme-icon aria-hidden="true">&#9789;</span>
+          </button>
+          <div class="topbar__user-btn" aria-label="Current user">
+            <span>{{ request.user.username|slice:":2"|upper }}</span><small>{{ demo_role }}</small>
+          </div>
+          <form method="post" action="{% url 'logout' %}" class="logout-form">
+            {% csrf_token %}
+            <button type="submit" class="topbar__logout-btn">Logout</button>
+          </form>
+        </div>
+      </header>
+      <main class="app-content">
+        {% if dashboard_error %}
+          <div class="alert alert--danger" role="alert">
+            <div>
+              <p class="alert__title">Dashboard unavailable</p>
+              <p class="alert__body">{{ dashboard_error }}</p>
+            </div>
+          </div>
+        {% else %}
+          {% block content %}{% endblock %}
+        {% endif %}
+      </main>
+    </div>
+  </div>
+</body>
+</html>

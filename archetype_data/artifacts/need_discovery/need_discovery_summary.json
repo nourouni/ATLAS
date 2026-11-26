@@ -1,0 +1,22 @@
+{
+  "generated_at": "2026-11-26T10:33:43.177937+00:00",
+  "raw_evidence_rows": 0,
+  "filtered_evidence_rows": 0,
+  "semantic_ready_rows": 0,
+  "semantic_grouping_ready": false,
+  "semantic_grouping_executed": false,
+  "candidate_labeling_executed": false,
+  "candidate_needs_generated": 0,
+  "pending_review": 0,
+  "reviewed_candidates": 0,
+  "accepted": 0,
+  "rejected": 0,
+  "merged_with_existing": 0,
+  "keep_under_observation": 0,
+  "insufficient_evidence": 0,
+  "ontology_updates_applied": 0,
+  "step4_artifact_sha256": null,
+  "candidate_count": 0,
+  "review_artifact_sha256": "b3efcf9461e6ff10373c838eaea97cb46d04c38df34c2cbf32489bf1236c83dd",
+  "pipeline_version": "step5_analyst_validation_v1"
+}

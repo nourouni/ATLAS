@@ -1,0 +1,1 @@
+"""Internal FastAPI boundary for the Atlas Demo RAG pipeline."""\n

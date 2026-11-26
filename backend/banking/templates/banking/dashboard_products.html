@@ -1,0 +1,57 @@
+{% extends "banking/base_dashboard.html" %}
+{% block content %}
+<div class="flex justify-between items-center mb-4"><div><h1 class="text-page-title">Product opportunities</h1><p class="text-muted mt-2">Which products combine high relative model interest with comparatively low current ownership?</p></div></div>
+{{ analytics.ontology_graph|json_script:"product-ontology-graph-data" }}
+
+<section class="card mb-4"><h2 class="text-card-title mb-2">Opportunity candidates</h2><p class="text-muted">{{ analytics.opportunity_candidates|length }} products rank in the top third by average propensity and bottom third by ownership rate.</p><p class="text-subtle mb-4">This ranking reflects model signal and ownership data only. It does not account for eligibility rules, pricing, capacity, or customer consent, and propensity is not a calibrated purchase probability.</p><div class="ranked-summary">{% for row in analytics.opportunity_candidates %}<article class="ranked-row"><div><strong>{{ row.product_name }}</strong><span>{{ row.average_propensity_display }} relative model signal · {{ row.ownership_rate_display }} ownership of portfolio customers</span></div><span class="ranked-row__metric">Candidate</span></article>{% empty %}<p class="empty-state__body">No opportunity candidates are available from the current outputs.</p>{% endfor %}</div></section>
+
+<div class="product-analytics-grid mb-4">
+  <section class="card">
+    <div class="card__header"><h2 class="text-card-title">Product ownership</h2><span class="badge badge--neutral">% of customers</span></div>
+    <div class="analytics-bars analytics-bars--scroll">
+      {% for row in analytics.top_owned %}
+        <article class="analytics-bar-row">
+          <span>{{ row.product_name }}</span>
+          <div class="bar-track"><span style="width: {{ row.ownership_bar_width }}"><title>{{ row.product_name }}: {{ row.owner_count }} owners out of {{ analytics.summary.total_customers }} customers ({{ row.ownership_rate_display }})</title></span></div>
+          <strong>{{ row.ownership_rate_display }}</strong>
+        </article>
+      {% empty %}
+        <p class="empty-state__body">No ownership rows are available.</p>
+      {% endfor %}
+    </div>
+  </section>
+  <section class="card">
+    <div class="card__header"><h2 class="text-card-title">Recommendation frequency</h2><span class="badge badge--neutral">stored count</span></div>
+    <div class="analytics-bars analytics-bars--scroll">
+      {% for row in analytics.top_recommended %}
+        <article class="analytics-bar-row">
+          <span>{{ row.product_name }}</span>
+          <div class="bar-track"><span style="width: {{ row.recommendation_bar_width }}"><title>{{ row.product_name }}: {{ row.recommendation_count }} recommendations, {{ row.recommendation_share_display }} of stored recommendations</title></span></div>
+          <strong>{{ row.recommendation_count }}</strong>
+        </article>
+      {% empty %}
+        <p class="empty-state__body">No recommendation rows are available.</p>
+      {% endfor %}
+    </div>
+  </section>
+</div>
+
+<details class="card card--ontology-explorer mb-4" open><summary><span class="text-card-title">Explore product relationships</span><span class="badge badge--neutral">{{ analytics.ontology_graph.summary.node_count }} nodes / {{ analytics.ontology_graph.summary.edge_count }} edges</span></summary><p class="text-muted mt-2">Stored relationships among products, needs, and eligibility concepts; these do not prove customer intent.</p><div class="relationship-graph" data-relationship-graph data-graph-source="product-ontology-graph-data" data-show-labels="false" data-show-edge-labels="false"></div></details>
+
+<details class="card product-detail-table">
+  <summary><span class="text-card-title">Exact product values</span><span class="badge badge--neutral">{{ analytics.rows|length }} products</span></summary>
+  <div class="table-wrap mt-4">
+    <table class="data-table">
+      <thead><tr><th>Product</th><th>Owners</th><th>Ownership</th><th>Scored customers</th><th>Average propensity</th><th>Recommendations</th><th>Recommendation share</th><th>Average rec score</th></tr></thead>
+      <tbody>
+        {% for row in analytics.rows %}
+          <tr><td>{{ row.product_name }}</td><td class="text-mono">{{ row.owner_count }}</td><td class="text-mono">{{ row.ownership_rate_display }}</td><td class="text-mono">{{ row.scored_customer_count }}</td><td class="text-mono">{{ row.average_propensity_display }}</td><td class="text-mono">{{ row.recommendation_count }}</td><td class="text-mono">{{ row.recommendation_share_display }}</td><td class="text-mono">{{ row.average_score }}</td></tr>
+        {% empty %}
+          <tr><td colspan="8">No product analytics are available.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</details>
+<nav class="card mt-4" aria-label="Continue analysis">To see this opportunity for a single customer, <a href="{% url 'dashboard-customers' %}">look them up →</a>. To compare demand across stored recommendations, <a href="{% url 'dashboard-recommendations' %}">open Recommendations →</a>.</nav>
+{% endblock %}

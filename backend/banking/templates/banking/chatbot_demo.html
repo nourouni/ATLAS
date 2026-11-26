@@ -1,0 +1,42 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ATLAS — Atlas Demo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'banking/tokens.css' %}">
+  <link rel="stylesheet" href="{% static 'banking/main.css' %}">
+  <link rel="stylesheet" href="{% static 'banking/chatbot_demo.css' %}?v=20260918-readable-markdown">
+  <script src="{% static 'banking/dashboard_shell.js' %}" defer></script>
+</head>
+<body class="assistant-page">
+  <svg class="atlas-chat-constellation" aria-hidden="true" viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid slice">
+    <g><line x1="80" y1="130" x2="180" y2="210"/><line x1="180" y1="210" x2="270" y2="145"/><line x1="890" y1="120" x2="1020" y2="180"/><line x1="1020" y1="180" x2="1110" y2="95"/><line x1="210" y1="650" x2="340" y2="590"/><line x1="340" y1="590" x2="430" y2="700"/><line x1="850" y1="610" x2="960" y2="540"/><line x1="960" y1="540" x2="1080" y2="650"/><circle cx="80" cy="130" r="2"/><circle cx="180" cy="210" r="1.4"/><circle cx="270" cy="145" r="1.8"/><circle cx="890" cy="120" r="1.5"/><circle cx="1020" cy="180" r="2"/><circle cx="1110" cy="95" r="1.5"/><circle cx="210" cy="650" r="1.6"/><circle cx="340" cy="590" r="1.4"/><circle cx="430" cy="700" r="1.8"/><circle cx="850" cy="610" r="1.5"/><circle cx="960" cy="540" r="2"/><circle cx="1080" cy="650" r="1.5"/><circle class="accent" cx="108" cy="500" r="2"/><circle class="accent" cx="760" cy="120" r="2"/></g>
+  </svg>
+  <template id="atlas-avatar-svg-template">{% include "banking/atlas_assistant_icon.svg" %}</template>
+  <main class="chat-shell decision-chat-shell" aria-label="ATLAS chatbot">
+    <header class="chat-header decision-chat-header">
+      <div class="decision-chat-title">
+        <span class="sr-only">Atlas Demo Chatbot</span>
+        <div class="header-brand-group">
+          <div class="atlas-workspace-brand"><img class="atlas-atlas_demo-logo" src="{% static 'banking/atlas_assistant_icon.svg' %}" alt="Atlas Demo"><div><strong>ATLAS</strong><small>Chatbot Assistant</small></div></div>
+        </div>
+        <span class="sr-only">Role: {{ demo_role }}</span>
+      </div>
+      <div class="header-actions decision-header-actions">
+        <button class="btn btn--secondary btn--icon" type="button" data-theme-toggle aria-label="Toggle theme"><span data-theme-icon></span></button>
+        <div class="user-status decision-context" aria-label="Current user"><span>{% if authenticated_customer_id %}Customer ID: {{ authenticated_customer_id }}{% else %}{{ demo_role }}{% endif %}</span></div>
+        {% if can_access_dashboard %}<a class="admin-dashboard-link" href="{% url 'dashboard' %}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Dashboard</a>{% endif %}
+        <form method="post" action="{% url 'logout' %}" class="logout-form">{% csrf_token %}<button type="submit" class="logout-button">Logout</button></form>
+        <span class="status-pill" id="connectionStatus" aria-hidden="true"></span>
+      </div>
+    </header>
+    <section class="decision-chat-body"><aside class="decision-context-panel" aria-hidden="true"></aside><section class="decision-chat-panel"><section class="conversation decision-conversation" id="conversation" aria-live="polite" aria-label="Conversation"><article class="atlas-welcome"><span class="atlas-avatar atlas-avatar--welcome" data-welcome-avatar aria-hidden="true"></span><div class="atlas-welcome-copy"><h1>How can I help you today?</h1><p>Ask ATLAS about Atlas Demo products, account insights or recommendations.</p></div></article></section><form class="composer decision-composer" id="chatForm"><label class="sr-only" for="messageInput">Message</label><textarea id="messageInput" name="message" rows="2" maxlength="2000" placeholder="Ask about products, segments, forecasts, or customer decision support..." autocomplete="off"></textarea><button type="submit" id="sendButton" aria-label="Send message"><span aria-hidden="true">→</span></button></form></section></section>
+  </main>
+  <script src="{% static 'banking/chatbot_demo.js' %}?v=20260918-readable-markdown"></script>
+</body>
+</html>

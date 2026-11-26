@@ -1,0 +1,10 @@
+transformers
+datasets
+accelerate
+pef
+bitsandbytes
+trl
+pyyaml
+sentencepiece
+tiktoken
+protobuf

@@ -1,0 +1,51 @@
+{% extends "banking/base_dashboard.html" %}
+{% block content %}
+<div class="product-rec-header">
+  <h1 class="text-page-title">Product Recommendations</h1>
+  <p class="text-muted">From current product ownership to personalized recommendation opportunities.</p>
+</div>
+{{ analytics.ontology_graph|json_script:"product-recommendation-ontology-data" }}
+
+<section class="product-rec-section" aria-labelledby="landscape-title">
+  <div class="section-heading"><div><span class="eyebrow">01 · PRODUCT LANDSCAPE</span><h2 id="landscape-title">Product landscape</h2><p>Products currently represented in the customer portfolio.</p></div></div>
+  <div class="product-analytics-grid">
+    <article class="card product-rec-panel"><h3 class="text-card-title">Most-held products</h3><p class="text-subtle">Share of portfolio customers</p><div class="analytics-bars">
+      {% for row in analytics.top_owned|slice:":10" %}<div class="analytics-bar-row atlas-bar-row"><span>{{ row.product_name }}</span><div class="bar-track"><span style="width:{{ row.ownership_bar_width }}"></span></div><strong>{{ row.ownership_rate_display }}</strong></div>{% empty %}<p class="empty-state__body">No ownership data is available.</p>{% endfor %}
+    </div></article>
+    <article class="card product-rec-panel"><h3 class="text-card-title">Product families</h3><p class="text-subtle">Customers represented by stored family values</p><div class="analytics-bars">
+      {% for row in analytics.product_families|slice:":10" %}<div class="analytics-bar-row atlas-bar-row atlas-bar-row--family"><span>{{ row.family|title }}</span><div class="bar-track"><span style="width:{{ row.bar_width }}"></span></div><strong>{{ row.share_display }}</strong></div>{% empty %}<p class="empty-state__body">No product-family data is available.</p>{% endfor %}
+    </div></article>
+  </div>
+  <details class="card product-detail-table product-rec-detail"><summary><span>View exact data</span><span class="badge badge--neutral">{{ analytics.rows|length }} products</span></summary><div class="table-wrap mt-4"><table class="data-table"><thead><tr><th>Product</th><th>Owners</th><th>Ownership</th></tr></thead><tbody>{% for row in analytics.rows %}<tr><td>{{ row.product_name }}</td><td class="text-mono">{{ row.owner_count }}</td><td class="text-mono">{{ row.ownership_rate_display }}</td></tr>{% endfor %}</tbody></table></div></details>
+</section>
+
+<section class="product-rec-section" aria-label="Product ontology">
+  <details class="card card--ontology-explorer product-rec-ontology" open>
+    <summary><span class="text-card-title">Explore product ontology</span><span class="badge badge--neutral">{{ analytics.ontology_graph.summary.node_count }} nodes / {{ analytics.ontology_graph.summary.edge_count }} edges</span></summary>
+    <p class="text-muted mt-2">Stored relationships among products, needs and eligibility concepts used as recommendation evidence.</p>
+    <div class="relationship-graph" data-relationship-graph data-graph-source="product-recommendation-ontology-data" data-show-labels="false" data-show-edge-labels="false"></div>
+  </details>
+</section>
+
+<div class="decision-flow" aria-label="How propensity becomes a recommendation"><span>Product propensity</span><b>↓</b><span>Rules + ontology evidence</span><b>↓</b><span>Final recommendation</span></div>
+
+<section class="product-rec-section" aria-labelledby="recommendations-title">
+  <div class="section-heading"><div><span class="eyebrow">03 · FINAL RECOMMENDATIONS</span><h2 id="recommendations-title">Recommended products</h2><p>Final stored outputs from the recommendation pipeline.</p></div></div>
+  <div class="recommendation-list recommendation-list--dashboard">{% for row in analytics.top_recommended|slice:":6" %}<article class="recommendation-card recommendation-card--ranked"><span class="recommendation-card__rank">Stored output</span><strong>{{ row.product_name }}</strong><div class="recommendation-card__score"><span>Recommendation volume</span><b>{{ row.recommendation_count }}</b></div><p class="text-muted">Average stored ranking score: {{ row.average_score }}</p></article>{% empty %}<p class="empty-state__body">No stored recommendations are available.</p>{% endfor %}</div>
+</section>
+
+<section class="product-rec-section customer-explorer" aria-labelledby="customer-title">
+  {% comment %}
+  <div class="section-heading"><div><span class="eyebrow">04 · CUSTOMER EXPLORATION</span><h2 id="customer-title">Explore customer recommendations</h2><p>Follow one customer from current products to propensity signals, final ranking, and the stored explanation.</p></div></div>
+  <article class="card">
+    <form method="get" action="{% url 'dashboard-recommendations' %}" class="lookup-form"><label class="form-label" for="product_rec_customer_id">Customer ID</label><input class="form-input" id="product_rec_customer_id" name="customer_id" inputmode="numeric" value="{{ lookup_customer_id }}" placeholder="Enter a customer ID"><button class="btn btn--accent" type="submit">Search</button></form>
+    {% if lookup_error %}<p class="form-error">{{ lookup_error }}</p>{% endif %}
+    {% if selected_customer %}
+      <div class="customer-flow"><section><div class="customer-flow__title">Owned products <span>{{ selected_customer.recommendation_owned_products|length }}</span></div><div class="product-chip-list product-chip-list--full-line">{% for product in selected_customer.recommendation_owned_products %}<div class="product-chip"><strong>{{ product.product_name }}</strong><small>{{ product.family|default:product.category|default:"Product"|title }}</small></div>{% empty %}<p class="empty-state__body">No owned products are stored for this customer.</p>{% endfor %}</div></section>
+      <section><div class="customer-flow__title">Product opportunity</div><p class="text-subtle">Propensity is a relative model signal used as one input to product recommendation.</p><div class="analytics-bars propensity-bars">{% for row in selected_customer.propensities|slice:":10" %}<div class="analytics-bar-row atlas-bar-row"><span>{{ row.product_name }}</span><div class="bar-track"><span style="width:{{ row.bar_width }}"></span></div><strong>{{ row.propensity_display }}</strong></div>{% empty %}<p class="empty-state__body">No propensity predictions are stored for this customer.</p>{% endfor %}</div></section></div>
+      <section class="customer-recommendations"><div class="customer-flow__title">Top recommendation and ranking</div><div class="customer-recommendations__grid"><div class="customer-recommendations__top">{% with rec=selected_customer.recommendations.0 %}{% if rec %}<article class="recommendation-card recommendation-card--ranked recommendation-card--top"><span class="recommendation-card__rank">#{{ rec.rank }} · Top recommendation</span><strong>{{ rec.product_name }}</strong><div class="recommendation-card__score"><span>Propensity signal</span><b>{{ rec.propensity_display }}</b></div><p class="recommendation-card__description"><span class="recommendation-label">Why recommended</span>{{ rec.reason_display }}</p></article>{% else %}<p class="empty-state__body">No recommendations are stored for this customer.</p>{% endif %}{% endwith %}</div><div class="customer-recommendations__chart"><p class="text-subtle">Ranked recommendation scores</p><div class="analytics-bars">{% for rec in selected_customer.recommendations %}<div class="analytics-bar-row atlas-bar-row"><span>#{{ rec.rank }} {{ rec.product_name }}</span><div class="bar-track"><span style="width:{{ rec.score|default:0|floatformat:3 }}00%"></span></div><strong>{{ rec.score_display }}</strong></div>{% empty %}<p class="empty-state__body">No ranked recommendation data is available.</p>{% endfor %}</div></div></div></section>
+    {% endif %}
+  </article>
+</section>
+  {% endcomment %}
+{% endblock %}

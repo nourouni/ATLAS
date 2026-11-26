@@ -1,0 +1,77 @@
+{% extends "banking/base_dashboard.html" %}
+{% block content %}
+{{ analytics.forecast_chart|json_script:"forecast-chart-data" }}
+{{ analytics.comparison_chart_by_population|json_script:"forecast-comparison-chart-data" }}
+<h1 class="text-page-title mb-2">Expected balance trend for a customer group</h1>
+<p class="text-muted mb-4">How is the average balance of this behavioral group expected to evolve?</p>
+<div class="alert alert--info mb-4"><div><p class="alert__title">Group forecast — not an individual prediction</p><p class="alert__body">This forecast represents the average behavior of the selected temporal behavior group. It does not predict an individual customer’s future balance.</p></div></div>
+<section class="card mb-4 forecasting-context-grid"><article><h2 class="text-card-title">Static behavioral segments</h2><p class="text-muted mt-2">Customers grouped according to their overall banking habits. These are the final segment forecasts used on the Segments page.</p></article><article><h2 class="text-card-title">Temporal behavior groups</h2><p class="text-muted mt-2">Customers grouped according to how their banking activity changes over time. The selected forecast below is a temporal group outlook.</p></article></section>
+<section class="card mb-4"><div class="card__header"><div><h2 class="text-card-title">Static segment balance outlook</h2><p class="text-muted mt-2">Stored three-week average-balance forecasts from the final static-cluster workflow. Cluster -1 and non-avg-balance targets are excluded.</p></div></div><div class="table-wrap"><table class="data-table"><thead><tr><th>Population</th><th>Behavioral segment</th><th>Forecast model</th><th>Forecast end</th><th>Status</th></tr></thead><tbody>{% for population, rows in analytics.static_overview.items %}{% for row in rows %}<tr><td>{{ population|title }}</td><td>{{ row.segment_name }}</td><td>{{ row.model|default:"Not recorded" }}</td><td class="text-mono">{{ row.forecast_end|default:"n/a" }}</td><td>{% if row.manual_review %}Forecast unavailable pending model review{% elif row.available %}Available{% else %}{{ row.status|default:"Unavailable" }}{% endif %}</td></tr>{% empty %}{% endfor %}{% endfor %}{% if not analytics.static_overview.retail and not analytics.static_overview.enterprise %}<tr><td colspan="5">No static forecast artifact rows are available.</td></tr>{% endif %}</tbody></table></div></section>
+
+<section class="card mb-4">
+  <form method="get" action="{% url 'dashboard-forecasting' %}" class="lookup-form">
+    <label class="form-label" for="pool">Temporal behavior group</label>
+    <select class="form-select" id="pool" name="pool">
+      {% for pool in analytics.pool_options %}<option value="{{ pool.value }}" {% if pool.value == analytics.selected_pool %}selected{% endif %}>{{ pool.label }}</option>{% endfor %}
+    </select>
+    <button class="btn btn--accent" type="submit">View</button>
+  </form>
+</section>
+
+{% if analytics.forecast_summary.last_observed or analytics.forecast_summary.end_forecast %}<section class="card mb-4"><div class="card__header"><div><h2 class="text-card-title">Key finding</h2><p class="text-muted mt-2">Selected group: {{ analytics.selected_pool_label }}</p></div></div><div class="overview-kpis"><div class="kpi-card"><span class="kpi-card__label">Last observed average</span><span class="kpi-card__value">{{ analytics.forecast_summary.last_observed|default:"n/a" }}</span></div><div class="kpi-card"><span class="kpi-card__label">End-of-horizon forecast</span><span class="kpi-card__value">{{ analytics.forecast_summary.end_forecast|default:"n/a" }}</span></div><div class="kpi-card"><span class="kpi-card__label">Expected direction</span><span class="kpi-card__value">{{ analytics.forecast_summary.direction|default:"n/a"|title }}</span><span class="text-subtle">Change: {{ analytics.forecast_summary.change|default:"n/a" }}</span></div></div></section>{% endif %}
+
+<section class="customer-chart-card mb-4">
+  <h2 class="text-card-title mb-2">Average balance forecast{% if analytics.selected_pool_label %}: {{ analytics.selected_pool_label }}{% endif %}</h2>
+  <div class="forecast-transition-note">Solid line is historical actual average balance; dashed line is the projected continuation. This is a segment average, not this customer's balance.</div>
+  <div class="customer-chart" data-line-chart data-chart-source="forecast-chart-data" data-series="actual,forecast" data-labels="Actual average,Projected average" data-value-label="Average balance"></div>
+</section>
+
+<section class="forecast-method-grid mb-4">
+  {% for metric in analytics.forecast_metrics %}
+    <article class="forecast-method-card">
+      <div class="forecast-method-card__header">
+        <span class="badge badge--positive">Selected output metric</span>
+        <strong>{{ metric.label }}</strong>
+        <small>{{ metric.process }}{% if metric.model_family %} / {{ metric.model_family }}{% endif %}</small>
+        <small>{{ metric.process }}{% if metric.model_family %} / {{ metric.model_family }}{% endif %}</small>
+      </div>
+      <div class="forecast-metric-row"><span>Average prediction error <small>(MAE)</small></span><div class="bar-track"><span style="width: {{ metric.mae_width }}"></span></div><strong>{{ metric.mae_display }} balance units</strong></div>
+      <div class="forecast-metric-row"><span>Error sensitive to large misses <small>(RMSE)</small></span><div class="bar-track"><span style="width: {{ metric.rmse_width }}"></span></div><strong>{{ metric.rmse_display }} balance units</strong></div>
+      <div class="forecast-metric-row"><span>Performance vs. simple baseline <small>(MASE)</small></span><div class="bar-track"><span style="width: {{ metric.mase_width }}"></span></div><strong>{{ metric.mase_display }} · {% if metric.mase < 1 %}better{% elif metric.mase == 1 %}comparable{% else %}worse{% endif %} than baseline</strong></div>
+    </article>
+  {% empty %}
+    <section class="card"><p class="empty-state__body">No stored forecast evaluation metrics are available.</p></section>
+  {% endfor %}
+</section>
+
+<p class="text-muted mb-4">Forecasts are point estimates only; confidence intervals are not available in the current output.</p>
+
+<section class="card mb-4">
+  <h2 class="text-card-title mb-4">Forecast detail</h2>
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead><tr><th>Date</th><th>Scenario</th><th>Model</th><th>Forecast Avg Balance</th><th>Actual</th></tr></thead>
+      <tbody>{% for row in analytics.forecasts %}<tr><td>{{ row.forecast_date }}</td><td>{{ row.scenario_case }}</td><td>{{ row.model_name }}</td><td class="text-mono">{{ row.predicted_value_display }}</td><td class="text-mono">{{ row.actual_value_display }}</td></tr>{% empty %}<tr><td colspan="5">No avg balance forecast rows are available.</td></tr>{% endfor %}</tbody>
+    </table>
+  </div>
+</section>
+
+<section class="card">
+  <div class="card__header">
+    <div><h2 class="text-card-title">Comparison across behavioral segments</h2><p class="text-muted mt-2">Latest forecasted average balance and trend, compared within each population.</p></div>
+    <div class="segmented-control" role="tablist" aria-label="Forecast comparison population" data-panel-group="forecast-comparison">
+      <button class="segmented-control__item is-active" type="button" role="tab" aria-selected="true" data-panel-target="retail">Retail</button>
+      <button class="segmented-control__item" type="button" role="tab" aria-selected="false" data-panel-target="enterprise" {% if not analytics.comparison_chart_by_population.enterprise %}disabled title="Enterprise forecast data unavailable"{% endif %}>Enterprise</button>
+    </div>
+  </div>
+  <div class="forecast-comparison-panels">
+    <div data-panel-group="forecast-comparison" data-panel="retail">
+      <div class="forecast-comparison-chart" data-forecast-comparison-chart data-chart-source="forecast-comparison-chart-data" data-population="retail"></div>
+    </div>
+    <div data-panel-group="forecast-comparison" data-panel="enterprise" hidden>
+      <div class="forecast-comparison-chart" data-forecast-comparison-chart data-chart-source="forecast-comparison-chart-data" data-population="enterprise"></div>
+    </div>
+  </div>
+</section>
+<nav class="card mt-4" aria-label="Continue analysis">Given this segment's outlook, <a href="{% url 'dashboard-products' %}">see which specific products represent an opportunity for it →</a></nav>
+{% endblock %}

@@ -1,0 +1,90 @@
+{% extends "banking/base_dashboard.html" %}
+{% block content %}
+{{ analytics.by_product|json_script:"recommendation-product-chart-data" }}
+{{ analytics.by_segment_explorer|json_script:"recommendation-segment-chart-data" }}
+<h1 class="text-page-title mb-2">Product opportunities and recommendations</h1>
+<p class="text-muted mb-4">What should be considered for a customer, and what stored evidence supports that ranking?</p>
+<div class="card-grid mb-4">
+  <div class="kpi-card"><span class="kpi-card__label">Stored recommendation slots</span><span class="kpi-card__value">{{ analytics.summary.total_recommendations }}</span><span class="text-subtle">Customers may have multiple ranked products</span></div>
+  <div class="kpi-card"><span class="kpi-card__label">Customers covered</span><span class="kpi-card__value">{{ analytics.summary.customers_with_recommendations }}</span></div>
+  <div class="kpi-card"><span class="kpi-card__label">Recommendation coverage</span><span class="kpi-card__value">{{ analytics.summary.coverage }}</span><span class="text-subtle">Customers with ≥1 stored recommendation of {{ analytics.summary.coverage_population_label }}</span></div>
+</div>
+
+<section class="alert alert--info recommendation-explainer mb-4" aria-label="How recommendation scores are calculated">
+  <div>
+    <p class="alert__title">How to read these scores</p>
+    <p class="alert__body">Propensity estimates the target Y: how likely this customer is to fit a candidate product they do not already own. X variables include segment and archetype, customer profile fields, balance and transaction behavior, channel usage, financial need signals, current product portfolio depth, and product/category descriptors.</p>
+    <p class="alert__body">Segment prior is the baseline product tendency for the customer's behavioral segment. Max affinity is the strongest historical link between any product the customer already owns and the candidate product. Recommendation score is the stored ranking score used to order eligible products; it is not a calibrated probability.</p>
+    <details class="feature-detail-list">
+      <summary>X variables used by the propensity model</summary>
+      <div>
+        <strong>Customer profile</strong>
+        <span>age, tenure_days, income_decile, customer_class, csp, employment, employment_detail, income_schedule, location</span>
+      </div>
+      <div>
+        <strong>Balance and transactions</strong>
+        <span>starting_balance, total_deposit, total_withdrawal, net_cash_flow, avg_balance, max_balance, min_balance, balance_volatility, balance_growth, txn_count, withdrawal_deposit_ratio</span>
+      </div>
+      <div>
+        <strong>Behavior and needs</strong>
+        <span>salary_day, payday_week_of_month, is_tre, channel_entropy, digital_tx_pct, atm_tx_pct, branch_tx_pct, financial_capacity, digital_affinity, credit_need, savings_affinity, international_transfer_need, business_complexity, relationship_depth</span>
+      </div>
+      <div>
+        <strong>Segment, product, and portfolio</strong>
+        <span>segment_product_prior, product_prior_multiplier, product_model_segment, segment, latent_archetype, category, product, family, max_owned_to_candidate_affinity, mean_owned_to_candidate_affinity, n_linked_owned_products, n_other_owned_products, n_other_owned_families</span>
+      </div>
+    </details>
+  </div>
+</section>
+
+<div class="product-analytics-grid mb-4">
+  <section class="card">
+    <div class="card__header"><div><h2 class="text-card-title">Recommendations by product</h2><p class="text-muted mt-2">Average score is the stored recommendation ranking score, not a calibrated probability.</p></div></div>
+    <div class="recommendation-chart" data-recommendation-product-chart data-chart-source="recommendation-product-chart-data"></div>
+    <details class="product-detail-table mt-4">
+      <summary><span>Exact product values</span><span class="badge badge--neutral">{{ analytics.by_product|length }} products</span></summary>
+      <div class="table-wrap mt-4"><table class="data-table"><thead><tr><th>Product</th><th>Recommendations</th><th>Average score</th></tr></thead><tbody>{% for row in analytics.by_product %}<tr><td>{{ row.product_name }}</td><td class="text-mono">{{ row.recommendation_count }}</td><td class="text-mono">{{ row.average_score }}</td></tr>{% empty %}<tr><td colspan="3">No recommendations are available.</td></tr>{% endfor %}</tbody></table></div>
+    </details>
+  </section>
+
+  <section class="card">
+    <div class="card__header"><div><h2 class="text-card-title">Recommendations by segment</h2><p class="text-muted mt-2">Valid behavioral segments only; outliers and unmapped groups are excluded.</p></div></div>
+    <div class="recommendation-chart" data-recommendation-segment-chart data-chart-source="recommendation-segment-chart-data"></div>
+    <details class="product-detail-table mt-4">
+      <summary><span>Exact segment values</span><span class="badge badge--neutral">{{ analytics.by_segment|length }} rows</span></summary>
+      <div class="table-wrap mt-4"><table class="data-table"><thead><tr><th>Population</th><th>Segment</th><th>Product</th><th>Count</th><th>Avg score</th></tr></thead><tbody>{% for row in analytics.by_segment %}<tr><td>{{ row.population }}</td><td>{{ row.segment_name }}</td><td>{{ row.product_name }}</td><td class="text-mono">{{ row.recommendation_count }}</td><td class="text-mono">{{ row.average_score }}</td></tr>{% empty %}<tr><td colspan="5">No segment recommendation aggregation is available.</td></tr>{% endfor %}</tbody></table></div>
+    </details>
+  </section>
+</div>
+
+<section class="card">
+  <div class="card__header"><h2 class="text-card-title">Selected customer recommendations</h2>{% if selected_customer %}<span class="badge badge--neutral">Customer {{ selected_customer.customer.customer_id }}</span>{% endif %}</div>
+  <form method="get" action="{% url 'dashboard-recommendations' %}" class="lookup-form mb-4">
+    <label class="form-label" for="customer_id">Customer ID</label>
+    <input class="form-input" id="customer_id" name="customer_id" inputmode="numeric" value="{{ lookup_customer_id }}">
+    <button class="btn btn--accent" type="submit">Lookup</button>
+  </form>
+  {% if lookup_error %}<p class="form-error">{{ lookup_error }}</p>{% endif %}
+  {% if selected_customer %}
+    <div class="recommendation-list recommendation-list--dashboard">
+      {% for rec in selected_customer.recommendations %}
+        <article class="recommendation-card recommendation-card--ranked {% if forloop.first %}recommendation-card--top{% endif %}">
+          <span class="recommendation-card__rank">Rank {{ rec.rank }}</span>
+          <strong>{{ rec.product_name }}</strong>
+          <div class="recommendation-card__score"><span>Recommendation score</span><b>{{ rec.score_display }}</b></div>
+          <dl class="recommendation-card__signals">
+            <div><dt>Propensity Y</dt><dd>{{ rec.propensity_display }}</dd></div>
+            <div><dt>Segment prior</dt><dd>{{ rec.segment_prior_display }}</dd></div>
+            <div><dt>Max affinity</dt><dd>{{ rec.max_affinity_display }}</dd></div>
+          </dl>
+          <p>{{ rec.reason_display }}</p>
+          <details><summary>Technical signals</summary><p>Propensity is a relative model signal, not a purchase probability. Segment prior: {{ rec.segment_prior_display }} · Max affinity: {{ rec.max_affinity_display }} · Ranking score: {{ rec.score_display }}.</p></details>
+        </article>
+      {% empty %}
+        <p class="empty-state__body">No recommendations are stored for this customer.</p>
+      {% endfor %}
+    </div>
+  {% endif %}
+</section>
+<nav class="card mt-4" aria-label="Continue analysis">To see this customer's full profile and history behind this recommendation, <a href="{% url 'dashboard-customers' %}{% if lookup_customer_id %}?customer_id={{ lookup_customer_id }}{% endif %}">open Customers →</a></nav>
+{% endblock %}

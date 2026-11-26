@@ -1,0 +1,298 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Atlas Demo Employee Dashboard</title>
+  <link rel="stylesheet" href="{% static 'banking/chatbot_demo.css' %}">
+</head>
+<body class="dashboard-page">
+  <header class="dashboard-topbar">
+    <div>
+      <p class="eyebrow">Employee decision support</p>
+      <h1>Atlas Demo Dashboard</h1>
+    </div>
+    <nav class="dashboard-nav" aria-label="Employee navigation">
+      <a href="{% url 'dashboard' %}">Dashboard home</a>
+      <a href="#customer-lookup">Customer lookup</a>
+      <a href="{% url 'chatbot-demo' %}">Chatbot</a>
+      <span>{{ request.user.username }} - {{ demo_role }}</span>
+      <form method="post" action="{% url 'logout' %}" class="logout-form">
+        {% csrf_token %}
+        <button type="submit" class="secondary-button">Logout</button>
+      </form>
+    </nav>
+  </header>
+
+  <main class="dashboard-shell">
+    {% if dashboard_error %}
+      <section class="dashboard-section">
+        <p class="login-error" role="alert">{{ dashboard_error }}</p>
+      </section>
+    {% else %}
+      <section class="dashboard-section" aria-labelledby="overview-title">
+        <div class="section-heading">
+          <h2 id="overview-title">Portfolio Overview</h2>
+          <p>Stored PostgreSQL analytical outputs from the current archetype data pipeline.</p>
+        </div>
+
+        <div class="summary-grid">
+          <article class="metric-card"><span>Total customers</span><strong>{{ overview.summary.total_customers }}</strong></article>
+          <article class="metric-card"><span>Retail customers</span><strong>{% if overview.summary.customer_class_available %}{{ overview.summary.retail_customers|default:"0" }}{% else %}Unavailable{% endif %}</strong></article>
+          <article class="metric-card"><span>Enterprise customers</span><strong>{% if overview.summary.customer_class_available %}{{ overview.summary.enterprise_customers|default:"0" }}{% else %}Unavailable{% endif %}</strong></article>
+          <article class="metric-card"><span>Segment definitions</span><strong>{{ overview.summary.behavioral_segments }}</strong></article>
+          <article class="metric-card"><span>Assigned segments</span><strong>{{ overview.summary.assigned_behavioral_segments }}</strong></article>
+          <article class="metric-card"><span>Products in ownership</span><strong>{{ overview.summary.distinct_products }}</strong></article>
+          <article class="metric-card"><span>Products in propensity outputs</span><strong>{{ overview.summary.distinct_propensity_products }}</strong></article>
+          <article class="metric-card"><span>Stored recommendations</span><strong>{{ overview.summary.total_recommendations }}</strong></article>
+        </div>
+
+        {% if not overview.summary.customer_class_available %}
+          <p class="empty-note">Retail/enterprise counts are not shown because the current customer_class field is not populated.</p>
+        {% endif %}
+      </section>
+
+      <section class="dashboard-section story-strip" aria-label="Decision-support story">
+        <div><span>Customer</span></div>
+        <div><span>Behavioral Segment</span></div>
+        <div><span>Product Propensity</span></div>
+        <div><span>Segment Balance Outlook</span></div>
+        <div><span>Recommendation</span></div>
+        <div><span>Explanation / Reason</span></div>
+      </section>
+
+      <section class="dashboard-section grid-two">
+        <article>
+          <h2>Segment Distribution</h2>
+          <p class="explain">Behavioral segments group customers with similar stored behavioral characteristics.</p>
+          <table>
+            <thead><tr><th>Segment</th><th>Customer class</th><th>Customers</th></tr></thead>
+            <tbody>
+              {% for row in overview.segment_distribution %}
+                <tr>
+                  <td>{{ row.segment_id }} {% if row.segment_name %}<span class="muted">({{ row.segment_name }})</span>{% endif %}</td>
+                  <td>{{ row.customer_class }}</td>
+                  <td>{{ row.customer_count }}</td>
+                </tr>
+              {% empty %}
+                <tr><td colspan="3">No segment distribution is available.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </article>
+
+        <article>
+          <h2>Product Ownership</h2>
+          <p class="explain">Top stored ownership counts by product.</p>
+          <table>
+            <thead><tr><th>Product</th><th>Owners</th></tr></thead>
+            <tbody>
+              {% for row in overview.product_ownership %}
+                <tr><td>{{ row.product_name }}</td><td>{{ row.owner_count }}</td></tr>
+              {% empty %}
+                <tr><td colspan="2">No product ownership rows are available.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </article>
+      </section>
+
+      <section class="dashboard-section grid-two">
+        <article>
+          <h2>Product Propensity Overview</h2>
+          <p class="explain">Top average model-estimated likelihoods by product. Propensity is not an eligibility or approval decision.</p>
+          <table>
+            <thead><tr><th>Product</th><th>Customers scored</th><th>Average propensity</th></tr></thead>
+            <tbody>
+              {% for row in overview.propensity_overview|slice:":10" %}
+                <tr><td>{{ row.product_name }}</td><td>{{ row.customer_count }}</td><td>{{ row.average_propensity_display }}</td></tr>
+              {% empty %}
+                <tr><td colspan="3">No propensity outputs are available.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% if overview.propensity_overview|length > 10 %}
+            <details class="compact-details">
+              <summary>View all {{ overview.propensity_overview|length }} propensity products</summary>
+              <table>
+                <thead><tr><th>Product</th><th>Customers scored</th><th>Average propensity</th></tr></thead>
+                <tbody>
+                  {% for row in overview.propensity_overview %}
+                    <tr><td>{{ row.product_name }}</td><td>{{ row.customer_count }}</td><td>{{ row.average_propensity_display }}</td></tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </details>
+          {% endif %}
+        </article>
+
+        <article class="recommendation-panel">
+          <h2>Recommendation Overview</h2>
+          <p class="explain">Stored decision-support outputs produced by the recommendation pipeline. Scores are not propensity probabilities.</p>
+          <table>
+            <thead><tr><th>Product</th><th>Recommendations</th><th>Average score</th></tr></thead>
+            <tbody>
+              {% for row in overview.recommendation_overview.by_product %}
+                <tr><td>{{ row.product_name }}</td><td>{{ row.recommendation_count }}</td><td>{{ row.average_score }}</td></tr>
+              {% empty %}
+                <tr><td colspan="3">No recommendation rows are available.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </article>
+      </section>
+
+      <section class="dashboard-section">
+        <details class="system-info">
+          <summary>Model / System Information</summary>
+          {% if overview.model_runs %}
+            <table>
+              <thead><tr><th>Run</th><th>Type</th><th>Completed</th></tr></thead>
+              <tbody>
+                {% for run in overview.model_runs %}
+                  <tr><td>{{ run.run_name }}</td><td>{{ run.model_type }}</td><td>{{ run.completed_at|default:run.created_at }}</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          {% else %}
+            <p class="empty-note">No model-run metadata is available.</p>
+          {% endif %}
+        </details>
+      </section>
+
+      <section class="dashboard-section" id="customer-lookup" aria-labelledby="lookup-title">
+        <div class="section-heading">
+          <h2 id="lookup-title">ATLAS Customer Lookup</h2>
+          <p>Find a customer by ID to view their behavioral profile, segment context, products and recommendations.</p>
+        </div>
+        <form method="get" action="{% url 'dashboard' %}" class="lookup-form">
+          <label for="customer_id">Customer ID</label>
+          <input id="customer_id" name="customer_id" inputmode="numeric" value="{{ lookup_customer_id }}" placeholder="Example: 187121">
+          <button type="submit">Search</button>
+        </form>
+        {% if lookup_error %}
+          <p class="login-error" role="alert">{{ lookup_error }}</p>
+        {% endif %}
+      </section>
+
+      {% if selected_customer %}
+        <section class="dashboard-section" aria-labelledby="customer-title">
+          <div class="section-heading">
+            <h2 id="customer-title">Customer {{ selected_customer.customer.customer_id }}</h2>
+            <p>Customer -> Behavioral Segment -> Product Propensity -> Segment Balance Outlook -> Stored Recommendation -> Explanation / Reason.</p>
+          </div>
+
+          <div class="summary-grid">
+            <article class="metric-card"><span>Customer type</span><strong>{{ selected_customer.customer.customer_class|default:"Unavailable" }}</strong></article>
+            <article class="metric-card"><span>Employment/CSP</span><strong>{{ selected_customer.customer.employment|default:"Unavailable" }}</strong></article>
+            <article class="metric-card"><span>Income decile</span><strong>{{ selected_customer.customer.income_decile|default:"Unavailable" }}</strong></article>
+            <article class="metric-card"><span>Tenure days</span><strong>{{ selected_customer.customer.tenure_days|default:"Unavailable" }}</strong></article>
+            <article class="metric-card"><span>Forecast pool</span><strong>{{ selected_customer.customer.forecast_pool|default:"Unavailable" }}</strong></article>
+            <article class="metric-card"><span>Segment label</span><strong>{{ selected_customer.customer.segment_label|default:"Unavailable" }}</strong></article>
+          </div>
+        </section>
+
+        <section class="dashboard-section grid-two">
+          <article>
+            <h2>Owned Products</h2>
+            <table>
+              <thead><tr><th>Product</th><th>Family</th><th>Category</th></tr></thead>
+              <tbody>
+                {% for product in selected_customer.owned_products %}
+                  <tr><td>{{ product.product_name }}</td><td>{{ product.family|default:"" }}</td><td>{{ product.category|default:"" }}</td></tr>
+                {% empty %}
+                  <tr><td colspan="3">No owned products are stored for this customer.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </article>
+
+          <article>
+            <h2>Behavioral Segment</h2>
+            <p class="explain">Behavioral segment groups customers with similar stored behavioral characteristics.</p>
+            {% if selected_customer.segment %}
+              <dl class="detail-list">
+                <dt>Segment</dt><dd>{{ selected_customer.segment.segment_id|default:selected_customer.customer.behavioral_segment_id }}</dd>
+                <dt>Description</dt><dd>{{ selected_customer.segment.description|default:"No description stored." }}</dd>
+                <dt>Transaction behavior</dt><dd>{{ selected_customer.segment.transaction_behavior|default:"Unavailable" }}</dd>
+                <dt>Balance/cashflow behavior</dt><dd>{{ selected_customer.segment.balance_and_cashflow_behavior|default:"Unavailable" }}</dd>
+                <dt>Digital behavior</dt><dd>{{ selected_customer.segment.digital_channel_behavior|default:"Unavailable" }}</dd>
+              </dl>
+            {% else %}
+              <p class="empty-note">No behavioral segment details are stored for this customer.</p>
+            {% endif %}
+          </article>
+        </section>
+
+        <section class="dashboard-section">
+          <h2>Product Propensity</h2>
+          <p class="explain">Which products does the model estimate this customer is more likely to adopt? Product propensity is a model-estimated likelihood and is not itself a recommendation or approval decision.</p>
+          {% for item in selected_customer.propensities|slice:":10" %}
+            <div class="bar-row">
+              <div>
+                <strong>{{ item.product_name }}</strong>
+                <span>Rank {{ item.rank|default:"n/a" }} - {{ item.propensity_display }}</span>
+              </div>
+              <div class="bar-track" aria-hidden="true"><span style="width: {{ item.bar_width }}"></span></div>
+            </div>
+          {% empty %}
+            <p class="empty-note">No propensity predictions are stored for this customer.</p>
+          {% endfor %}
+          {% if selected_customer.propensities|length > 10 %}
+            <details class="compact-details">
+              <summary>View all {{ selected_customer.propensities|length }} customer propensity predictions</summary>
+              {% for item in selected_customer.propensities %}
+                <div class="bar-row">
+                  <div>
+                    <strong>{{ item.product_name }}</strong>
+                    <span>Rank {{ item.rank|default:"n/a" }} - {{ item.propensity_display }}</span>
+                  </div>
+                  <div class="bar-track" aria-hidden="true"><span style="width: {{ item.bar_width }}"></span></div>
+                </div>
+              {% endfor %}
+            </details>
+          {% endif %}
+        </section>
+
+        <section class="dashboard-section">
+          <h2>Segment Average Balance Forecast</h2>
+          <p class="explain">This is segment-level Average Balance forecasting. This forecast describes the expected Average Balance of the customer's behavioral segment. It is not a prediction of the individual customer's future account balance.</p>
+          {% if selected_customer.forecasts %}
+            <table>
+              <thead><tr><th>Forecast date</th><th>Scenario</th><th>Model</th><th>Predicted Avg Balance</th><th>Actual</th></tr></thead>
+              <tbody>
+                {% for forecast in selected_customer.forecasts %}
+                  <tr><td>{{ forecast.forecast_date }}</td><td>{{ forecast.scenario_case }}</td><td>{{ forecast.model_name }}</td><td>{{ forecast.predicted_value_display }}</td><td>{{ forecast.actual_value_display }}</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          {% else %}
+            <p class="empty-note">No segment-level Avg Balance forecast is stored for this customer's forecast pool.</p>
+          {% endif %}
+        </section>
+
+        <section class="dashboard-section">
+          <h2>Recommendations</h2>
+          <p class="explain">Which products does the integrated decision-support system currently recommend? Recommendations are stored outputs from the existing recommendation pipeline.</p>
+          <div class="concept-pair">
+            <div><strong>Product interest signal</strong><span>relative model score, not a purchase probability</span></div>
+            <div><strong>Recommendation</strong><span>stored ranking output used for decision support</span></div>
+          </div>
+          <div class="recommendation-list">
+            {% for rec in selected_customer.recommendations %}
+              <article class="recommendation-card">
+                <span>Rank {{ rec.rank }} - score {{ rec.score_display }}</span>
+                <strong>{{ rec.product_name }}</strong>
+                <p>{{ rec.reason|default:"No reason stored." }}</p>
+              </article>
+            {% empty %}
+              <p class="empty-note">No recommendations are stored for this customer.</p>
+            {% endfor %}
+          </div>
+        </section>
+      {% endif %}
+    {% endif %}
+  </main>
+</body>
+</html>

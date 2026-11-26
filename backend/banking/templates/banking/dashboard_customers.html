@@ -1,0 +1,142 @@
+{% extends "banking/base_dashboard.html" %}
+{% block content %}
+<div class="customer-lookup-shell{% if selected_customer %} customer-lookup-shell--loaded{% endif %}">
+<h1 class="text-page-title customer-lookup-title">Customer lookup</h1>
+<p class="customer-lookup-description">Find a customer by ID to view their behavioral profile, segment context, products and recommendations.</p>
+<section class="card customer-lookup-card mb-4">
+  <form method="get" action="{% url 'dashboard-customers' %}" class="lookup-form">
+    <label class="form-label" for="customer_id">Customer ID</label>
+    <input class="form-input" id="customer_id" name="customer_id" inputmode="numeric" value="{{ lookup_customer_id }}" placeholder="Example: 187121">
+    <button class="btn btn--accent" type="submit">Search</button>
+  </form>
+  {% if lookup_error %}<div class="alert alert--danger" role="alert"><div><p class="alert__title">Lookup failed</p><p class="alert__body">{{ lookup_error }}</p></div></div>{% endif %}
+</section>
+</div>
+
+{% if selected_customer %}
+<div class="selected-customer-page">
+{{ selected_customer.customer_product_graph|json_script:"customer-product-graph-data" }}
+{{ selected_customer.forecast_chart|json_script:"customer-forecast-chart-data" }}
+{{ selected_customer.customer_feature_series|json_script:"customer-feature-series-data" }}
+{{ selected_customer.segment.clustering_features|json_script:"customer-segment-clustering-features-data" }}
+{{ selected_customer.segment.segment_median_features|json_script:"customer-segment-median-features-data" }}
+
+<section class="selected-customer-profile card-grid mb-4">
+  <div class="kpi-card"><span class="kpi-card__label">Customer ID</span><span class="kpi-card__value">{{ selected_customer.customer.customer_id }}</span></div>
+  <div class="kpi-card"><span class="kpi-card__label">Customer type</span><span class="kpi-card__value">{{ selected_customer.segment.source_group|default:selected_customer.customer.customer_class|default:"Unavailable" }}</span></div>
+  <div class="kpi-card"><span class="kpi-card__label">Behavioral segment</span><span class="kpi-card__value">{{ selected_customer.segment.display_name|default:"Unavailable" }}</span></div>
+  <div class="kpi-card"><span class="kpi-card__label">Employment</span><span class="kpi-card__value">{{ selected_customer.customer.employment|default:selected_customer.customer.segment_label|default:"Unavailable" }}</span></div>
+</section>
+<p class="text-muted mb-4">Customer {{ selected_customer.customer.customer_id }} is a {{ selected_customer.customer.customer_class|default:"customer" }} classified into the {{ selected_customer.segment.display_name|default:"Unavailable" }} behavior group.{% if not selected_customer.segment_is_assigned %} Segment not assigned — showing account type instead.{% endif %}</p>
+
+<section class="selected-customer-glance card mb-4" aria-labelledby="customer-glance-title">
+  <div class="card__header"><div><h2 id="customer-glance-title" class="text-card-title">Customer at a glance</h2><p class="text-muted mt-2">A concise reading of the stored customer, product, and temporal evidence.</p></div></div>
+  <div class="insight-list">
+    {% if selected_customer.segment %}<p class="insight-list__item">Assigned behavior group: <strong>{{ selected_customer.segment.display_name|default:selected_customer.segment.segment_name }}</strong>.</p>{% endif %}
+    {% if selected_customer.customer_feature_series.summary.observed_periods %}<p class="insight-list__item">Observed across {{ selected_customer.customer_feature_series.summary.observed_periods }} weekly periods; ending balance change over that window: {{ selected_customer.customer_feature_series.summary.balance_change|default:"not available" }}.</p><p class="insight-list__item">{{ selected_customer.customer_feature_series.summary.dominant_channel|default:"No dominant channel" }} is the largest recorded activity channel.</p>{% else %}<p class="empty-state__body">No temporal history is available for a behavioral summary.</p>{% endif %}
+    <p class="insight-list__item">{{ selected_customer.owned_products|length }} owned products and {{ selected_customer.recommendations|length }} stored recommendations are available for review.</p>
+  </div>
+</section>
+
+<section class="selected-customer-segment card mb-4">
+  <div class="card__header">
+    <div>
+      <h2 class="text-card-title">Behavioral segment</h2>
+      <p class="text-muted mt-2">This customer inherits analytics from the assigned behavioral segment, not from a demographic label.</p>
+    </div>
+    {% if selected_customer.segment.segment_id %}<span class="badge badge--neutral">{{ selected_customer.segment.segment_id }}</span>{% endif %}
+  </div>
+  {% if selected_customer.segment %}
+    <dl class="detail-list">
+      <dt>Name</dt><dd>{{ selected_customer.segment.display_name|default:"No segment name stored." }}</dd>
+      <dt>Description</dt><dd>{{ selected_customer.segment.description|default:"No description stored." }}</dd>
+      <dt>Transaction behavior</dt><dd>{{ selected_customer.segment.transaction_behavior|default:"No transaction interpretation stored." }}</dd>
+      <dt>Balance/cashflow behavior</dt><dd>{{ selected_customer.segment.balance_and_cashflow_behavior|default:"No balance interpretation stored." }}</dd>
+      <dt>Digital behavior</dt><dd>{{ selected_customer.segment.digital_channel_behavior|default:"No digital interpretation stored." }}</dd>
+    </dl>
+  {% else %}
+    <p class="empty-state__body">No behavioral segment details are stored for this customer.</p>
+  {% endif %}
+</section>
+
+<section class="selected-customer-outlook balance-outlook card mb-4">
+  <div class="card__header">
+    <div>
+      <h2 class="text-card-title">Balance outlook</h2>
+      <p class="text-muted mt-2"><strong>Group-level outlook — not an individual prediction.</strong> This customer is linked to customers whose activity evolved similarly over time. Solid points show their historical group average balance; dashed points show the projected continuation for that temporal behavior group.</p>
+    </div>
+    <span class="badge badge--neutral">Segment context</span>
+  </div>
+  <div class="customer-chart balance-outlook__chart" data-line-chart data-chart-source="customer-forecast-chart-data" data-series="actual,forecast" data-labels="Historical temporal-group average,Forecast temporal-group average" data-value-label="Average balance"></div>
+  <div class="table-wrap mt-4"><table class="data-table"><thead><tr><th>Date</th><th>Scenario</th><th>Model</th><th>Predicted Avg Balance</th><th>Actual</th></tr></thead><tbody>{% for forecast in selected_customer.forecasts %}<tr><td>{{ forecast.forecast_date }}</td><td>{{ forecast.scenario_case }}</td><td>{{ forecast.model_name }}</td><td class="text-mono">{{ forecast.predicted_value_display }}</td><td class="text-mono">{{ forecast.actual_value_display }}</td></tr>{% empty %}<tr><td colspan="5">{% if selected_customer.missing_outputs.forecasts %}No forecast output is stored for this customer’s behavioral segment.{% else %}No forecast rows are available.{% endif %}</td></tr>{% endfor %}</tbody></table></div>
+</section>
+
+<section class="selected-customer-behavior card mb-4">
+  <div class="card__header">
+    <div>
+      <h2 class="text-card-title">Customer behavior over time</h2>
+      <p class="text-muted mt-2">Weekly values from the current archetype temporal panel for this customer.</p>
+    </div>
+    <span class="badge badge--neutral">{{ selected_customer.customer_feature_series.source|default:"Temporal panel" }}</span>
+  </div>
+  <div class="customer-analytics-grid">
+    <article class="customer-chart-card"><h3>Balance evolution</h3><p class="text-subtle">Weekly ending balance</p><div class="customer-chart" data-line-chart data-chart-source="customer-feature-series-data" data-series="ending_balance" data-labels="Ending balance" data-value-label="Ending balance"></div></article>
+    <article class="customer-chart-card"><h3>Cash-flow movement</h3><p class="text-subtle">Deposits, withdrawals and net cash flow</p><div class="customer-chart" data-line-chart data-chart-source="customer-feature-series-data" data-series="deposit,withdrawal,net_cash_flow" data-labels="Deposits,Withdrawals,Net cash flow" data-value-label="Cash flow"></div></article>
+    <article class="customer-chart-card"><h3>Transaction activity</h3><p class="text-subtle">Weekly transaction count</p><div class="customer-chart" data-line-chart data-chart-source="customer-feature-series-data" data-series="tx_count" data-labels="Transactions" data-value-label="Transaction count"></div></article>
+    <article class="customer-chart-card"><h3>Channel mix</h3><p class="text-subtle">Share of recorded activity by channel</p><div class="channel-mix" data-channel-mix data-chart-source="customer-feature-series-data"></div></article>
+  </div>
+  <details class="product-detail-table mt-4"><summary>View exact weekly data</summary><div class="table-wrap mt-4"><table class="data-table"><thead><tr><th>Date</th><th>Ending balance</th><th>Deposits</th><th>Withdrawals</th><th>Net cash flow</th><th>Transactions</th></tr></thead><tbody>{% for point in selected_customer.customer_feature_series.points %}<tr><td>{{ point.date }}</td><td class="text-mono">{{ point.ending_balance|default:"n/a" }}</td><td class="text-mono">{{ point.deposit|default:"n/a" }}</td><td class="text-mono">{{ point.withdrawal|default:"n/a" }}</td><td class="text-mono">{{ point.net_cash_flow|default:"n/a" }}</td><td class="text-mono">{{ point.tx_count|default:"n/a" }}</td></tr>{% empty %}<tr><td colspan="6">No weekly customer history is available.</td></tr>{% endfor %}</tbody></table></div></details>
+</section>
+
+<section class="selected-customer-recommendations card mb-4">
+  <div class="card__header">
+    <div>
+      <h2 class="text-card-title">Product recommendations</h2>
+      <p class="text-muted mt-2">Products selected using the stored recommendation pipeline.</p>
+    </div>
+  </div>
+  <div class="decision-table">
+    <p class="text-subtle mb-4">Propensity is a relative model signal, not a probability. Recommendation rank is the final stored pipeline output.</p>
+    {% for item in selected_customer.decision_support_products %}
+      <article class="decision-row">
+        <div>
+          <strong>{{ item.product_name }}</strong>
+          <p class="decision-row__description">{{ item.product_summary }}</p>
+        </div>
+        <div><span>Propensity</span><strong>{{ item.propensity_display }}</strong><div class="bar-track"><span style="width: {{ item.propensity_bar_width }}"></span></div></div>
+        <div><span>Recommendation</span><strong>{% if item.is_recommended %}#{{ item.recommendation_rank }}{% else %}Not in top stored recs{% endif %}</strong><div class="bar-track"><span style="width: {{ item.recommendation_bar_width }}"></span></div></div>
+      </article>
+    {% empty %}
+      <p class="empty-state__body">{% if selected_customer.missing_outputs.propensities and selected_customer.missing_outputs.recommendations %}No propensity or recommendation outputs are stored for this customer.{% elif selected_customer.missing_outputs.propensities %}No propensity predictions are stored for this customer.{% elif selected_customer.missing_outputs.recommendations %}No recommendations are stored for this customer.{% else %}No decision-support products are available.{% endif %}</p>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="selected-customer-graph card mb-4">
+  <div class="card__header">
+    <div>
+      <h2 class="text-card-title">Recommendation explanation</h2>
+      <p class="text-muted mt-2">Explore how the customer's segment, needs, owned products and recommended products are connected.</p>
+    </div>
+    <span class="badge badge--neutral">{{ selected_customer.customer_product_graph.nodes|length }} nodes</span>
+  </div>
+  <div class="relationship-graph relationship-graph--customer" data-relationship-graph data-graph-source="customer-product-graph-data"></div>
+</section>
+
+<section class="selected-customer-owned card">
+  <h2 class="text-card-title mb-2">Owned products</h2><p class="text-muted mb-4">{{ selected_customer.owned_products|length }} owned products, spanning {{ selected_customer.owned_product_family_count }} product families.</p>
+  <div class="owned-product-card-grid">
+    {% for product in selected_customer.owned_products %}
+    <article class="owned-product-card">
+      <strong>{{ product.product_name }}</strong>
+      <span>{{ product.family|default:product.category|default:"Product"|title }}</span>
+      <b>Owned</b>
+    </article>
+    {% empty %}
+    <p class="empty-state__body">{% if selected_customer.missing_outputs.owned_products %}No owned products are stored for this customer.{% else %}No owned-product rows are available.{% endif %}</p>
+    {% endfor %}
+  </div>
+</section>
+<nav class="card mt-4" aria-label="Continue analysis">See how this recommendation compares to demand across the whole portfolio: <a href="{% url 'dashboard-recommendations' %}?customer_id={{ selected_customer.customer.customer_id }}">open Recommendations →</a>. See how this customer's segment is expected to trend: <a href="{% url 'dashboard-forecasting' %}">open Forecasting →</a>.</nav>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,224 @@
+/* ==========================================================================
+   ATLAS DEMO DESIGN TOKENS
+   --------------------------------------------------------------------------
+   Single source of truth for the visual language shared by the login page,
+   the analytics dashboard, and the chatbot panel.
+
+   Codex integration note:
+   Load this file BEFORE main.css on every page. Never hardcode a hex value
+   in a template or a new component — reference a token instead. If a screen
+   needs a color the tokens don't cover, add the token here first, then use
+   it, so the palette stays centrally controlled.
+   ========================================================================== */
+
+:root {
+  /* ---------------------------------------------------------------------
+     1. BRAND PALETTE — raw values, referenced only inside this block.
+     Everything else in the system should consume the semantic tokens
+     below (--color-bg, --color-primary, etc.), not these directly.
+     --------------------------------------------------------------------- */
+  --brand-carbon: #242218;      /* primary brand dark: sidebar, header, ink */
+  --brand-slate: #62929E;       /* secondary: analytics / informational */
+  --brand-white: #F8F4F9;       /* app background, off-white */
+  --brand-amber: #FDCC04;       /* CTA / highlight / selected state */
+  --brand-scarlet: #FF2603;     /* danger / critical only */
+
+  /* Carbon tints — used for muted text, borders, hover washes, without
+     inventing new hues. Precomputed for legibility, not runtime mixed. */
+  --carbon-90: #2f2d22;
+  --carbon-70: #55523f;
+  --carbon-50: #7a7663;
+  --carbon-30: #a8a496;
+  --carbon-15: #d9d6cd;
+  --carbon-08: #ece9e1;
+
+  --slate-70: #4b7783;
+  --slate-30: #b9d0d5;
+  --slate-15: #dde9eb;
+  --slate-08: #eef4f5;
+
+  --amber-70: #c9a300;          /* darker amber for text-on-light / borders */
+  --amber-15: #fdf0c2;          /* amber wash for subtle highlight bg */
+
+  --scarlet-70: #cc1e02;
+  --scarlet-15: #ffe0da;
+
+  /* ---------------------------------------------------------------------
+     2. SEMANTIC COLOR TOKENS — what components should actually consume.
+     --------------------------------------------------------------------- */
+  --color-bg: var(--brand-white);
+  --color-bg-sunken: #efeae5;          /* app shell background behind cards */
+  --color-surface: #ffffff;            /* card / panel surface */
+  --color-surface-alt: var(--carbon-08); /* zebra rows, secondary panels */
+
+  --color-text: var(--brand-carbon);
+  --color-text-muted: var(--carbon-70);
+  --color-text-subtle: var(--carbon-50);
+  --color-text-on-dark: var(--brand-white);
+  --color-text-on-dark-muted: var(--carbon-15);
+
+  /* Primary = brand dark, used for the sidebar, dark surfaces, primary
+     buttons that are NOT the hero CTA (e.g. "Cancel" pairs with a filled
+     dark button, the hero CTA uses --color-accent / amber instead). */
+  --color-primary: var(--brand-carbon);
+  --color-primary-strong: #17150f;
+  --color-primary-contrast: var(--brand-white);
+
+  /* Accent = amber. Reserved for CTAs, selected states, recommendation
+     emphasis. Always paired with dark text (see accessibility note). */
+  --color-accent: var(--brand-amber);
+  --color-accent-strong: var(--amber-70);
+  --color-accent-wash: var(--amber-15);
+  --color-accent-contrast: var(--brand-carbon); /* NEVER white-on-amber */
+
+  /* Info = slate. Analytics, forecasting, neutral badges, chatbot source
+     indicators, secondary controls. This is the workhorse color, not
+     amber or scarlet — it should appear far more often than either. */
+  --color-info: var(--brand-slate);
+  --color-info-strong: var(--slate-70);
+  --color-info-wash: var(--slate-08);
+  --color-info-border: var(--slate-15);
+  --color-info-contrast: #ffffff;
+
+  /* Danger = scarlet. Errors, destructive actions, genuinely critical
+     KPI states only. Never decorative. */
+  --color-danger: var(--brand-scarlet);
+  --color-danger-strong: var(--scarlet-70);
+  --color-danger-wash: var(--scarlet-15);
+  --color-danger-contrast: #ffffff;
+
+  /* Positive trend indicator. Deliberately NOT a new invented hue — a
+     darker, desaturated slate rather than a green, so the palette stays
+     closed to the five brand colors while still letting KPI deltas read
+     as "good" vs "bad" without relying on color alone (icons back this
+     up in components.css / examples). */
+  --color-positive: #3c6a63;
+  --color-positive-wash: #e4efec;
+
+  --color-border: var(--carbon-15);
+  --color-border-strong: var(--carbon-30);
+  --color-border-on-dark: rgba(248, 244, 249, 0.14);
+
+  --color-focus-ring: #1c5f70; /* darker slate-derived, AA on white */
+
+  /* ---------------------------------------------------------------------
+     3. TYPOGRAPHY
+     Inter for interface + narrative text: neutral, highly legible at
+     small sizes, wide language support (relevant for FR/AR banking
+     copy). JetBrains Mono for figures/KPIs/table numerals only — gives
+     the analytics surfaces a data-driven feel and makes numeric columns
+     align, without turning the whole UI into a "dev tool" aesthetic.
+     --------------------------------------------------------------------- */
+  --font-sans: "IBM Plex Sans", "Segoe UI", -apple-system, BlinkMacSystemFont,
+    "Helvetica Neue", Arial, sans-serif;
+  --font-serif: "IBM Plex Serif", Georgia, serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular,
+    Menlo, Consolas, monospace;
+
+  --text-xs: 0.75rem;      /* 12px — badges, timestamps */
+  --text-sm: 0.8125rem;    /* 13px — labels, table text */
+  --text-base: 0.9375rem;  /* 15px — body */
+  --text-md: 1.0625rem;    /* 17px — card titles */
+  --text-lg: 1.375rem;     /* 22px — section titles */
+  --text-xl: 1.875rem;     /* 30px — page titles */
+  --text-2xl: 2.5rem;      /* 40px — KPI values */
+
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  --line-height-tight: 1.2;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.65;
+
+  --letter-spacing-tight: -0.01em;
+  --letter-spacing-normal: 0;
+  --letter-spacing-wide: 0.02em;
+
+  /* ---------------------------------------------------------------------
+     4. SPACING SCALE (4px base)
+     --------------------------------------------------------------------- */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+
+  /* ---------------------------------------------------------------------
+     5. RADIUS — restrained, not the "huge rounded SaaS card" default.
+     --------------------------------------------------------------------- */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 14px;
+  --radius-pill: 999px;
+
+  /* ---------------------------------------------------------------------
+     6. ELEVATION — soft, neutral (carbon-based), never colored glows.
+     --------------------------------------------------------------------- */
+  --shadow-sm: 0 1px 2px rgba(36, 34, 24, 0.06), 0 1px 1px rgba(36, 34, 24, 0.04);
+  --shadow-md: 0 4px 12px rgba(36, 34, 24, 0.08), 0 1px 2px rgba(36, 34, 24, 0.06);
+  --shadow-lg: 0 12px 32px rgba(36, 34, 24, 0.14), 0 2px 6px rgba(36, 34, 24, 0.08);
+  --shadow-focus: 0 0 0 3px rgba(28, 95, 112, 0.35);
+
+  /* ---------------------------------------------------------------------
+     7. MOTION — subtle only. No entrance choreography beyond one
+     gentle message-arrival transition in the chatbot.
+     --------------------------------------------------------------------- */
+  --transition-fast: 120ms ease;
+  --transition-base: 180ms ease;
+  --transition-slow: 260ms cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* ---------------------------------------------------------------------
+     8. LAYOUT
+     --------------------------------------------------------------------- */
+  --sidebar-width: 248px;
+  --sidebar-width-collapsed: 72px;
+  --topbar-height: 64px;
+  --content-max-width: 1440px;
+  --z-topbar: 100;
+  --z-sidebar: 90;
+  --z-modal: 1000;
+  --z-tooltip: 1100;
+}
+
+.dark {
+  color-scheme: dark;
+  --color-bg: #171511;
+  --color-bg-sunken: #11100d;
+  --color-surface: #191814;
+  --color-surface-alt: #22201b;
+  --color-text: #f4efe8;
+  --color-text-muted: #aaa399;
+  --color-text-subtle: #8e887f;
+  --color-border: #343129;
+  --color-border-strong: #49453a;
+  --color-primary: #161511;
+  --color-primary-strong: #0e0d0b;
+  --color-primary-contrast: #f4efe8;
+  --color-text-on-dark: #f4efe8;
+  --color-text-on-dark-muted: #aaa399;
+  --color-accent-wash: rgba(253, 204, 4, 0.12);
+  --color-danger-wash: rgba(255, 38, 3, 0.12);
+  --color-info-wash: rgba(98, 146, 158, 0.12);
+  --color-positive: #67c08a;
+  --color-positive-wash: rgba(103, 192, 138, 0.12);
+  --shadow-sm: none;
+  --shadow-md: none;
+  --shadow-lg: 0 18px 42px rgba(0, 0, 0, 0.42);
+  --shadow-focus: 0 0 0 3px rgba(253, 204, 4, 0.28);
+}
+
+/* Respect reduced-motion preference across the whole system */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --transition-fast: 0ms;
+    --transition-base: 0ms;
+    --transition-slow: 0ms;
+  }
+}
