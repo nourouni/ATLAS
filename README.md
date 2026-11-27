@@ -13,6 +13,10 @@ public documents -> RAG service -> LangGraph assistant
                          \-> Django dashboard and API
 ```
 
+![ATLAS system architecture](docs/images/atlas_system_architecture.png)
+
+*Original architecture design; the retained local runtime places LangGraph within Django and uses FastAPI for RAG retrieval. Docker is not required.*
+
 ## Main capabilities and technical stack
 
 - Django dashboard and authenticated customer-context views.
@@ -24,6 +28,20 @@ public documents -> RAG service -> LangGraph assistant
 ## Machine-learning methodology
 
 The retained implementation prepares customer features, evaluates static behavioral segments, separates static segment forecasts from temporal customer outlooks, trains propensity models with explicit feature-order contracts, and combines propensity candidates with ontology prerequisites, alternatives, conflicts, eligibility, and ownership exclusion. The demonstration uses bounded synthetic fixtures and does not include fitted binary models.
+
+## Hybrid recommendation workflow
+
+![Hybrid recommendation workflow](docs/images/rec_flow.png)
+
+The hybrid engine supports both propensity-backed and ontology-only recommendations, with eligibility and ownership checks before ranking.
+
+## Conversational assistant
+
+![LangGraph workflow](docs/images/langgraph_flow.png)
+
+### Controlled routing and source isolation
+
+![Controlled routing](docs/images/chatbot_controlled_routing.png)
 
 ## Original research results versus demonstration results
 
